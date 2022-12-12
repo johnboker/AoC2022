@@ -1,4 +1,3 @@
-using System.Numerics;
 
 namespace AoC2022.Solutions
 {
@@ -11,7 +10,6 @@ namespace AoC2022.Solutions
         public async Task ReadInput(string file)
         {
             Lines = await File.ReadAllLinesAsync(file);
-            IntitializeGrid();
         }
 
         public void IntitializeGrid()
@@ -47,6 +45,32 @@ namespace AoC2022.Solutions
             return (start, end);
         }
 
+        public (List<(int X, int Y)> Starts, (int X, int Y) End) FindStartAndEndPart2()
+        {
+            var starts = new List<(int X, int Y)>();
+            (int X, int Y) end = (-1, -1);
+
+            if (Grid != null)
+            {
+                for (var y = 0; y < Grid.Count(); y++)
+                {
+                    for (var x = 0; x < Grid[0].Count(); x++)
+                    {
+                        if (Grid[y][x] == 'S') Grid[y][x] = 'a';
+
+                        if (Grid[y][x] == 'S' || Grid[y][x] == 'a') starts.Add((x, y));
+                        if (Grid[y][x] == 'E')
+                        {
+                            end = (x, y);
+                            Grid[y][x] = 'z';
+                        }
+
+                    }
+                }
+            }
+            return (starts, end);
+        }
+
         public List<(int X, int Y)> GetValidMoves((int X, int Y) currentLocation, List<(int X, int Y)> visitedLocations)
         {
             var moves = new List<(int X, int Y)>();
@@ -56,27 +80,27 @@ namespace AoC2022.Solutions
                 var x = currentLocation.X;
                 var y = currentLocation.Y;
 
-                var level = Grid[y][x];
+                var level = Grid[y][x] + 1;
 
-                if (y > 0 && Math.Abs((int)(Grid[y - 1][x] - level)) <= 1)
+                if (y > 0 && level >= Grid[y - 1][x])
                     moves.Add((x, y - 1));
 
                 //if (y > 0 && x > 0 && Math.Abs((int)(Grid[y - 1][x - 1] - level)) <= 1)
                 //    moves.Add((x - 1, y - 1));
 
-                if (x > 0 && Math.Abs((int)(Grid[y][x - 1] - level)) <= 1)
+                if (x > 0 && level >= Grid[y][x - 1])
                     moves.Add((x - 1, y));
 
                 //if (y + 1 < Grid.Length && x > 0 && Math.Abs((int)(Grid[y + 1][x - 1] - level)) <= 1)
                 //    moves.Add((x - 1, y + 1));
 
-                if (y + 1 < Grid.Length && Math.Abs((int)(Grid[y + 1][x] - level)) <= 1)
+                if (y + 1 < Grid.Length && level >= Grid[y + 1][x])
                     moves.Add((x, y + 1));
 
                 //if (y + 1 < Grid.Length && x + 1 < Grid[0].Length && Math.Abs((int)(Grid[y + 1][x + 1] - level)) <= 1)
                 //    moves.Add((x + 1, y + 1));
 
-                if (x + 1 < Grid[0].Length && Math.Abs((int)(Grid[y][x + 1] - level)) <= 1)
+                if (x + 1 < Grid[0].Length && level >= Grid[y][x + 1])
                     moves.Add((x + 1, y));
 
                 //if (y > 0 && x + 1 < Grid[0].Length && Math.Abs((int)(Grid[y - 1][x + 1] - level)) <= 1)
@@ -87,58 +111,71 @@ namespace AoC2022.Solutions
             return moves;
         }
 
-        public void GetPathLength((int X, int Y) start, (int X, int Y) end)
+        public int GetPathLength((int X, int Y) start, (int X, int Y) end)
         {
             if (Grid != null)
             {
                 var visited = new List<(int X, int Y)>();
-                var costs = new SortedSet<(int P, (int X, int Y) Point)>();
+                var costs = new SortedSet<(int PathLength, (int X, int Y) Point)>();
 
                 visited.Add(start);
                 var neighbors = GetValidMoves(start, visited);
                 neighbors.ForEach(n => costs.Add((1, n)));
 
-                var current = (P: 0, Point: start);
+                var current = (PathLength: 0, Point: start);
 
                 while (current.Point != end && costs.Any())
                 {
                     current = costs.First();
                     visited.Add(current.Point);
-                    GetValidMoves(current.Point, visited).ForEach(n => costs.Add((current.P + 1, (n.X, n.Y))));
+                    GetValidMoves(current.Point, visited).ForEach(n => costs.Add((current.PathLength + 1, (n.X, n.Y))));
                     if (current.Point != end)
                     {
-                        Console.WriteLine(current);
                         costs.Remove(current);
                     }
                 }
 
-                Console.WriteLine($"Start: {start}, End: {end}");
-
                 if (costs.Any())
                 {
-                    Console.WriteLine(costs.First().P);
+                    return costs.First().PathLength;
                 }
             }
+
+            return -1;
         }
 
         public void Solve1()
         {
-            var visited = new HashSet<(int X, int Y)>();
-
+            IntitializeGrid();
             if (Grid != null)
             {
                 var startAndEnd = FindStartAndEnd();
-
                 Grid[startAndEnd.Start.Y][startAndEnd.Start.X] = 'a';
                 Grid[startAndEnd.End.Y][startAndEnd.End.X] = 'z';
-
-                GetPathLength(startAndEnd.Start, startAndEnd.End);
+                var pathLength = GetPathLength(startAndEnd.Start, startAndEnd.End);
+                Console.WriteLine(pathLength);
             }
         }
 
         public void Solve2()
         {
-
+            IntitializeGrid();
+            if (Grid != null)
+            {
+                var startsAndEnd = FindStartAndEndPart2();
+                var shortestPath = 100000000;
+                foreach (var start in startsAndEnd.Starts)
+                {
+                    var pathLength = GetPathLength(start, startsAndEnd.End);
+                    if (pathLength != -1 && pathLength < shortestPath)
+                    {
+                        shortestPath = pathLength;
+                    }
+                }
+                Console.WriteLine(shortestPath);
+            }
         }
     }
 }
+
+
