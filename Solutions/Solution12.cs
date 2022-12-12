@@ -21,7 +21,6 @@ namespace AoC2022.Solutions
                 {
                     Grid[i] = Lines[i].ToArray();
                 }
-
             }
         }
 
